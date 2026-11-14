@@ -78,7 +78,7 @@ Discovers subdomains associated with a target domain.
 
 ---
 
-## ⚙️ Getting Started
+##  Getting Started
 
 ### Prerequisites
 - Python 3.8 or higher
