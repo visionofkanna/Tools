@@ -1,31 +1,24 @@
-# 🔎 Subdomain Scanner
+#  Subdomain Scanner
 
 A fast, wordlist-based **subdomain enumeration tool** for Windows. Give it a target domain, and it checks thousands of common subdomain names to discover which ones actually exist, helping you map out the attack surface of a domain during reconnaissance.
 
 Ships as a ready-to-run **`SubdomainScanner.exe`** (no Python installation required) along with a bundled wordlist of the **top 5,000 most common subdomains**.
 
-> ⚠️ **For authorized security testing and educational purposes only.** See the [Disclaimer](#️-disclaimer).
+> **For authorized security testing and educational purposes only.** See the [Disclaimer](#️-disclaimer).
 
 ---
 
-## 📸 Screenshot
+##  Features
 
-<!-- Add a screenshot of the tool here -->
-<!-- ![Subdomain Scanner](screenshots/scanner.png) -->
-
----
-
-## ✨ Features
-
-- 🖥️ Simple desktop GUI, no command line needed
-- 📚 Bundled wordlist with 5,000 common subdomains (`www`, `mail`, `ftp`, `webmail`, ...)
-- 🔁 Brute-force enumeration by resolving `<word>.<target-domain>`
-- 📂 Support for custom wordlists (plain `.txt`, one subdomain per line)
-- 📦 Standalone Windows executable, just download and run
+-  Simple desktop GUI, no command line needed
+-  Bundled wordlist with 5,000 common subdomains (`www`, `mail`, `ftp`, `webmail`, ...)
+-  Brute-force enumeration by resolving `<word>.<target-domain>`
+-  Support for custom wordlists (plain `.txt`, one subdomain per line)
+-  Standalone Windows executable, just download and run
 
 ---
 
-## 📁 Repository Structure
+##  Repository Structure
 
 ```
 Subdomain-Scanner/
@@ -36,7 +29,7 @@ Subdomain-Scanner/
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Requirements
 
@@ -52,11 +45,11 @@ Subdomain-Scanner/
 2. Keep `SubdomainScanner.exe` and `subdomains-top1million-5000.txt` together in the same folder.
 3. Double-click **`SubdomainScanner.exe`** to launch.
 
-> 💡 If Windows SmartScreen shows a warning, click **More info → Run anyway**. This happens because the executable is unsigned.
+>  If Windows SmartScreen shows a warning, click **More info → Run anyway**. This happens because the executable is unsigned.
 
 ---
 
-## 🧭 Usage
+##  Usage
 
 1. Launch `SubdomainScanner.exe`.
 2. Enter the **target domain** (e.g. `example.com`).
@@ -72,7 +65,7 @@ Subdomain-Scanner/
 
 ---
 
-## 🧠 How It Works
+##  How It Works
 
 1. Reads each entry from the wordlist.
 2. Builds a candidate hostname: `<entry>.<domain>`.
@@ -80,8 +73,7 @@ Subdomain-Scanner/
 4. Subdomains that resolve successfully are reported as **valid**; the rest are discarded.
 
 ---
-
-## 🛠️ Build From Source
+##  Build From Source
 
 The executable was built from a Python application. To package it yourself:
 
@@ -94,13 +86,13 @@ The compiled file will be in the `dist/` folder.
 
 ---
 
-## 📚 Wordlist
+##  Wordlist
 
 `subdomains-top1million-5000.txt` contains the 5,000 most common subdomain names, sourced from the **top 1 million** subdomain lists popularly used in security research (e.g. [SecLists](https://github.com/danielmiessler/SecLists)). You can swap in any larger wordlist for deeper scans.
 
 ---
 
-## 🗺️ Roadmap
+##  Roadmap
 
 - [ ] Export results to TXT / CSV
 - [ ] Multi-threaded scanning controls
@@ -109,20 +101,11 @@ The compiled file will be in the `dist/` folder.
 
 ---
 
-## ⚠️ Disclaimer
-
-This tool is intended **only** for use on domains you own or have explicit written permission to test. Unauthorized scanning may be illegal in your jurisdiction. The author assumes no liability for misuse or damage caused by this tool.
-
----
-
-## 👤 Author
+##  Author
 
 **Rakesh Kanna**
 
-If you found this useful, consider giving the repo a ⭐!
+If you found this useful, consider giving the repo a star!
 
 ---
 
-## 📄 License
-
-Distributed under the MIT License. See `LICENSE` for details.
