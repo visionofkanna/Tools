@@ -9,11 +9,11 @@ These projects cover network reconnaissance, PDF security, and domain enumeratio
 
 | # | Project | Description |
 |---|---------|-------------|
-| 1 | [Network Scanner](./Network-Scanner) | Discovers live hosts on a local network and lists their IP and MAC addresses. |
-| 2 | [PDF Cracker Tool](./PDF-Cracker-Tool) | Recovers the password of a protected PDF using a wordlist (dictionary) attack. |
-| 3 | [PDF Protection Tool](./PDF-Protection-Tool) | Encrypts PDF files with a password to keep documents secure. |
-| 4 | [Port Scanner](./Port-Scanner) | Scans a target host for open TCP ports and identifies common services. |
-| 5 | [Subdomain Enumeration Tool](./Subdomain-Enumeration-Tool) | Finds valid subdomains of a domain using a wordlist. |
+| 1 | [Network Scanner] | Discovers live hosts on a local network and lists their IP and MAC addresses. |
+| 2 | [PDF Cracker Tool] | Recovers the password of a protected PDF using a wordlist (dictionary) attack. |
+| 3 | [PDF Protection Tool] | Encrypts PDF files with a password to keep documents secure. |
+| 4 | [Port Scanner] | Scans a target host for open TCP ports and identifies common services. |
+| 5 | [Subdomain Enumeration Tool] | Finds valid subdomains of a domain using a wordlist. |
 
 ---
 
