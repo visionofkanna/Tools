@@ -1,0 +1,117 @@
+import requests
+import threading
+import time
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+
+discovered_subdomains = []
+lock = threading.Lock()
+
+def check_subdomain(subdomain, domain, count, total, progress_var, text_box):
+    for protocol in ["http", "https"]:
+        url = f"{protocol}://{subdomain}.{domain}"
+        try:
+            response = requests.get(url, timeout=3)
+            if response.status_code == 200:
+                with lock:
+                    discovered_subdomains.append(url)
+                    text_box.insert(tk.END, f"[+] Found: {url}\n")
+                    text_box.see(tk.END)
+        except requests.ConnectionError:
+            pass
+        except requests.Timeout:
+            pass
+
+    progress_var.set(count / total * 100)
+
+def start_scan(domain, wordlist_path, progress_var, text_box, status_label):
+    if not domain:
+        messagebox.showerror("Error", "Please enter a target domain!")
+        return
+    if not wordlist_path:
+        messagebox.showerror("Error", "Please select a subdomain wordlist file!")
+        return
+
+    start = time.time()
+    discovered_subdomains.clear()
+    text_box.delete(1.0, tk.END)
+
+    try:
+        with open(wordlist_path) as f:
+            subdomains = f.read().splitlines()
+    except Exception as e:
+        messagebox.showerror("Error", f"Could not read file:\n{e}")
+        return
+
+    total = len(subdomains)
+    threads = []
+    for i, sub in enumerate(subdomains, start=1):
+        t = threading.Thread(target=check_subdomain,
+                             args=(sub, domain, i, total, progress_var, text_box))
+        t.start()
+        threads.append(t)
+
+    def wait_for_threads():
+        for t in threads:
+            t.join()
+        with open("discovered_subdomains.txt", "w") as f:
+            for sub in discovered_subdomains:
+                f.write(sub + "\n")
+        elapsed = round(time.time() - start, 2)
+        status_label.config(text=f"Scan completed in {elapsed} seconds")
+
+    threading.Thread(target=wait_for_threads).start()
+
+def main_gui():
+    root = tk.Tk()
+    root.title("Subdomain Scanner")
+    root.geometry("650x500")
+
+    frame = ttk.Frame(root, padding=10)
+    frame.pack(fill=tk.BOTH, expand=True)
+
+
+    domain_var = tk.StringVar()
+    domain_frame = ttk.Frame(frame)
+    domain_frame.pack(fill=tk.X, pady=5)
+    ttk.Label(domain_frame, text="Target Domain:").pack(side=tk.LEFT)
+    ttk.Entry(domain_frame, textvariable=domain_var, width=40).pack(side=tk.LEFT, padx=5)
+
+    
+    wordlist_path = tk.StringVar()
+
+    def browse_file():
+        file_path = filedialog.askopenfilename(
+            title="Select Subdomain Wordlist",
+            filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
+        )
+        if file_path:
+            wordlist_path.set(file_path)
+
+    file_frame = ttk.Frame(frame)
+    file_frame.pack(fill=tk.X, pady=5)
+    ttk.Label(file_frame, text="Wordlist:").pack(side=tk.LEFT)
+    ttk.Entry(file_frame, textvariable=wordlist_path, width=40).pack(side=tk.LEFT, padx=5)
+    ttk.Button(file_frame, text="Browse", command=browse_file).pack(side=tk.LEFT)
+
+    progress_var = tk.DoubleVar()
+    progress_bar = ttk.Progressbar(frame, variable=progress_var, maximum=100)
+    progress_bar.pack(fill=tk.X, pady=5)
+
+    text_box = tk.Text(frame, height=15)
+    text_box.pack(fill=tk.BOTH, expand=True, pady=5)
+
+    status_label = ttk.Label(frame, text="Ready")
+    status_label.pack(pady=5)
+
+    start_button = ttk.Button(frame, text="Start Scan",
+                              command=lambda: start_scan(domain_var.get(), wordlist_path.get(),
+                                                         progress_var, text_box, status_label))
+    start_button.pack(pady=5)
+
+    author_label = ttk.Label(root, text="Crafted by Rakesh Kanna", font=("Arial", 10, "italic"))
+    author_label.pack(side=tk.BOTTOM, pady=5)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main_gui()

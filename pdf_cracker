@@ -1,0 +1,141 @@
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+import pikepdf
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+import os
+
+
+def load_passwords(password_file):
+    
+    with open(password_file, "r", encoding="utf-8", errors="ignore") as f:
+        return [line.strip() for line in f if line.strip()]
+
+
+def try_password(pdf_file, password):
+    
+    try:
+        with pikepdf.open(pdf_file, password=password):
+            return password
+    except pikepdf._core.PasswordError:
+        return None
+    except Exception:
+        return None
+
+
+def decrypt_pdf(pdf_file, passwords, progress_callback, stop_flag):
+    
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {executor.submit(try_password, pdf_file, pwd): pwd for pwd in passwords}
+        total = len(futures)
+        done = 0
+        for future in as_completed(futures):
+            if stop_flag["stop"]:
+                return None
+            done += 1
+            progress_callback(done, total)
+            result = future.result()
+            if result:
+                return result
+    return None
+
+
+class PDFCrackerGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("PDF Cracker Tool")
+        self.root.geometry("700x400")
+        self.root.resizable(False, False)
+
+        self.stop_flag = {"stop": False}
+
+       
+        tk.Label(root, text="Select PDF File:", font=("Segoe UI", 10)).pack(anchor="w", padx=20, pady=5)
+        self.pdf_entry = tk.Entry(root, width=60)
+        self.pdf_entry.pack(padx=20)
+        tk.Button(root, text="Browse", command=self.browse_pdf).pack(pady=5)
+
+        
+        tk.Label(root, text="Select Password File:", font=("Segoe UI", 10)).pack(anchor="w", padx=20, pady=5)
+        self.password_entry = tk.Entry(root, width=60)
+        self.password_entry.pack(padx=20)
+        tk.Button(root, text="Browse", command=self.browse_password_file).pack(pady=5)
+
+        
+        self.progress = ttk.Progressbar(root, length=500, mode="determinate")
+        self.progress.pack(pady=10)
+        self.progress_info = tk.Label(root, text="Progress: 0 / 0", font=("Segoe UI", 9))
+        self.progress_info.pack()
+
+        
+        btn_frame = tk.Frame(root)
+        btn_frame.pack(pady=10)
+        tk.Button(btn_frame, text="Start Cracking", command=self.start_cracking,
+                  bg="#0078D7", fg="white", width=15).pack(side="left", padx=10)
+        tk.Button(btn_frame, text="Stop", command=self.stop_cracking,
+                  bg="#d9534f", fg="white", width=10).pack(side="left", padx=10)
+
+        
+        self.result_label = tk.Label(root, text="", font=("Segoe UI", 11), fg="blue")
+        self.result_label.pack(pady=10)
+
+        
+        footer = tk.Label(root, text="Crafted by Rakesh Kanna", fg="gray", font=("Segoe UI", 9, "italic"))
+        footer.pack(side="bottom", pady=5)
+
+    def browse_pdf(self):
+        file = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
+        if file:
+            self.pdf_entry.delete(0, tk.END)
+            self.pdf_entry.insert(0, file)
+
+    def browse_password_file(self):
+        file = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
+        if file:
+            self.password_entry.delete(0, tk.END)
+            self.password_entry.insert(0, file)
+
+    def start_cracking(self):
+        pdf_file = self.pdf_entry.get()
+        password_file = self.password_entry.get()
+
+        if not pdf_file or not password_file:
+            messagebox.showerror("Error", "Please select both PDF and Password File")
+            return
+
+        if not os.path.exists(pdf_file) or not os.path.exists(password_file):
+            messagebox.showerror("Error", "Invalid file path(s)")
+            return
+
+        passwords = load_passwords(password_file)
+        if not passwords:
+            messagebox.showerror("Error", "Password File contains no entries")
+            return
+
+        self.stop_flag["stop"] = False
+        self.result_label.config(text="Cracking in progress...", fg="blue")
+        threading.Thread(target=self.run_cracking, args=(pdf_file, passwords)).start()
+
+    def stop_cracking(self):
+        self.stop_flag["stop"] = True
+        self.result_label.config(text="Cracking stopped.", fg="red")
+
+    def run_cracking(self, pdf_file, passwords):
+        def update_progress(done, total):
+            self.progress["maximum"] = total
+            self.progress["value"] = done
+            self.progress_info.config(text=f"Progress: {done} / {total} ({int(done/total*100)}%)")
+
+        result = decrypt_pdf(pdf_file, passwords, update_progress, self.stop_flag)
+        if result:
+            self.result_label.config(text=f"Password found: {result}", fg="green")
+            with open("results.txt", "a", encoding="utf-8") as log:
+                log.write(f"PDF: {pdf_file}\nPassword found: {result}\n\n")
+        elif not self.stop_flag["stop"]:
+            self.result_label.config(text="Password not found.", fg="red")
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = PDFCrackerGUI(root)
+    root.mainloop()

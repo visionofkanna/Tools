@@ -1,0 +1,165 @@
+import socket
+import platform
+import datetime
+from concurrent.futures import ThreadPoolExecutor
+import tkinter as tk
+from tkinter import ttk, scrolledtext, messagebox
+
+
+def scan_tcp_port(target_ip, port):
+    sock = None
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex((target_ip, port))
+        if result == 0:
+            try:
+                banner = sock.recv(1024).decode(errors="ignore").strip()
+            except Exception:
+                banner = "No banner"
+            try:
+                service = socket.getservbyport(port, "tcp") if port < 1024 else "Unknown"
+            except OSError:
+                service = "Unknown"
+            return (port, "TCP", True, service, banner)
+        else:
+            return (port, "TCP", False, None, None)
+    except Exception:
+        return (port, "TCP", False, None, None)
+    finally:
+        if sock:
+            sock.close()
+
+
+def scan_udp_port(target_ip, port):
+    sock = None
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(1)
+        sock.sendto(b"Hello", (target_ip, port))
+        try:
+            data, _ = sock.recvfrom(1024)
+            return (port, "UDP", True, "Unknown", data.decode(errors="ignore"))
+        except socket.timeout:
+            return (port, "UDP", False, None, None)
+    except Exception:
+        return (port, "UDP", False, None, None)
+    finally:
+        if sock:
+            sock.close()
+
+
+def detect_os():
+    return platform.system(), platform.release()
+
+
+def port_scan(target_host, start_port, end_port, scan_udp=False):
+    try:
+        target_ip = socket.gethostbyname(target_host)
+    except socket.gaierror:
+        return []
+
+    results = []
+    with ThreadPoolExecutor(max_workers=50) as executor:
+        futures = []
+        for port in range(start_port, end_port + 1):
+            futures.append(executor.submit(scan_tcp_port, target_ip, port))
+            if scan_udp:
+                futures.append(executor.submit(scan_udp_port, target_ip, port))
+
+        for future in futures:
+            results.append(future.result())
+
+    return results
+
+
+def run_gui():
+    def start_scan():
+        try:
+            target = target_entry.get().strip()
+            start = int(start_entry.get())
+            end = int(end_entry.get())
+        except ValueError:
+            messagebox.showerror("Input Error", "Please enter valid port numbers.")
+            return
+
+        udp = udp_var.get()
+        status_bar.config(text="Scanning in progress...")
+        results = port_scan(target, start, end, scan_udp=udp)
+        output_box.delete(1.0, tk.END)
+
+        with open("scan_results.txt", "w") as f:
+            for port, proto, is_open, service, banner in results:
+                status = "OPEN" if is_open else "CLOSED"
+                line = f"{port} / {proto} : {status} | {service or '-'} | {banner or '-'}\n"
+                f.write(line)
+
+                if is_open:
+                    output_box.insert(tk.END, line, "open")
+                else:
+                    output_box.insert(tk.END, line, "closed")
+
+        os_name, os_version = detect_os()
+        output_box.insert(tk.END, f"\nDetected Local OS: {os_name} {os_version}\n")
+        status_bar.config(text="Scan complete")
+
+    def quick_scan_web():
+        start_entry.delete(0, tk.END)
+        end_entry.delete(0, tk.END)
+        start_entry.insert(0, "80")
+        end_entry.insert(0, "443")
+
+    def quick_scan_email():
+        start_entry.delete(0, tk.END)
+        end_entry.delete(0, tk.END)
+        start_entry.insert(0, "25")
+        end_entry.insert(0, "587")
+
+    def quick_scan_full():
+        start_entry.delete(0, tk.END)
+        end_entry.delete(0, tk.END)
+        start_entry.insert(0, "1")
+        end_entry.insert(0, "1024")
+
+    root = tk.Tk()
+    root.title("Port Scanner")
+
+    ttk.Label(root, text="Target Host/IP:").grid(row=0, column=0, padx=5, pady=5)
+    target_entry = ttk.Entry(root, width=30)
+    target_entry.grid(row=0, column=1, padx=5, pady=5)
+
+    ttk.Label(root, text="Start Port:").grid(row=1, column=0, padx=5, pady=5)
+    start_entry = ttk.Entry(root, width=10)
+    start_entry.grid(row=1, column=1, padx=5, pady=5)
+
+    ttk.Label(root, text="End Port:").grid(row=2, column=0, padx=5, pady=5)
+    end_entry = ttk.Entry(root, width=10)
+    end_entry.grid(row=2, column=1, padx=5, pady=5)
+
+    udp_var = tk.BooleanVar()
+    ttk.Checkbutton(root, text="Scan UDP Ports", variable=udp_var).grid(row=3, column=1, padx=5, pady=5)
+
+    scan_button = ttk.Button(root, text="Start Scan", command=start_scan)
+    scan_button.grid(row=4, column=1, padx=5, pady=5)
+
+    ttk.Button(root, text="Web Ports (80-443)", command=quick_scan_web).grid(row=4, column=0, padx=5, pady=5)
+    ttk.Button(root, text="Email Ports (25-587)", command=quick_scan_email).grid(row=3, column=0, padx=5, pady=5)
+    ttk.Button(root, text="Full Range (1-1024)", command=quick_scan_full).grid(row=2, column=2, padx=5, pady=5)
+
+    output_box = scrolledtext.ScrolledText(root, width=80, height=20)
+    output_box.grid(row=5, column=0, columnspan=3, padx=5, pady=5)
+
+    output_box.tag_config("open", foreground="green")
+    output_box.tag_config("closed", foreground="red")
+
+    footer = ttk.Label(root, text=f"Crafted by Rakesh Kanna", anchor="center")
+    footer.grid(row=6, column=0, columnspan=3, pady=5)
+
+    status_bar = ttk.Label(root, text="Ready", anchor="w")
+    status_bar.grid(row=7, column=0, columnspan=3, sticky="we")
+
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    run_gui()

@@ -1,0 +1,84 @@
+import socket
+import threading
+import tkinter as tk
+from tkinter import ttk
+from scapy.all import ARP, Ether, srp
+
+
+def get_cidr():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 0))  
+        ip = s.getsockname()[0]
+        s.close()
+    except:
+        ip = socket.gethostbyname(socket.gethostname())
+
+    subnet_mask = "255.255.255.0"  
+    mask_bits = sum([bin(int(x)).count("1") for x in subnet_mask.split(".")])
+    ip_parts = ip.split(".")
+    network_base = ".".join(ip_parts[:3]) + ".0"
+    return f"{network_base}/{mask_bits}"
+
+
+def scan_network(cidr, tree, status_label):
+    
+    for item in tree.get_children():
+        tree.delete(item)
+
+    status_label.config(text="Scanning network... Please wait.")
+
+    arp = ARP(pdst=cidr)
+    ether = Ether(dst="ff:ff:ff:ff:ff:ff")
+    packet = ether/arp
+
+    result = srp(packet, timeout=2, verbose=0)[0]
+
+    if result:
+        for sent, received in result:
+            tree.insert("", "end", values=(received.psrc, received.hwsrc))
+        status_label.config(text="Scan complete. Active devices listed below.")
+    else:
+        status_label.config(text="No active devices found in this range.")
+
+
+def start_gui():
+    root = tk.Tk()
+    root.title("Network Scanner")
+    root.geometry("800x500")  
+
+    cidr = get_cidr()
+
+    
+    header = tk.Label(root, text="Network Scanner Utility", font=("Arial", 16, "bold"))
+    header.pack(pady=10)
+
+    
+    label = tk.Label(root, text=f"Detected Network Range: {cidr}", font=("Arial", 12))
+    label.pack(pady=5)
+
+   
+    columns = ("IP Address", "MAC Address")
+    tree = ttk.Treeview(root, columns=columns, show="headings")
+    tree.heading("IP Address", text="IP Address")
+    tree.heading("MAC Address", text="MAC Address")
+    tree.pack(fill="both", expand=True, padx=20, pady=10)
+
+    
+    status_label = tk.Label(root, text="Click 'Start Scan' to begin.", font=("Arial", 11), fg="blue")
+    status_label.pack(pady=5)
+
+    
+    scan_btn = tk.Button(root, text="Start Scan", font=("Arial", 12, "bold"),
+                         command=lambda: threading.Thread(target=scan_network, args=(cidr, tree, status_label)).start())
+    scan_btn.pack(pady=10)
+
+    
+    footer = tk.Label(root, text="Crafted by Rakesh Kanna", font=("Arial", 10, "italic"), fg="gray")
+    footer.pack(side="bottom", pady=5)
+
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    start_gui()

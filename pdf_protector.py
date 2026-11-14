@@ -1,0 +1,69 @@
+import tkinter as tk
+from tkinter import filedialog, messagebox
+import PyPDF2
+import os
+
+def create_password_protected_pdf(input_pdf, output_pdf, password):
+    try:
+        with open(input_pdf, "rb") as file:
+            reader = PyPDF2.PdfReader(file)
+            writer = PyPDF2.PdfWriter()
+            for page in reader.pages:
+                writer.add_page(page)
+            writer.encrypt(password)
+            with open(output_pdf, "wb") as new_file:
+                writer.write(new_file)
+        messagebox.showinfo("Success", f"'{os.path.basename(output_pdf)}' has been secured with a password.")
+    except FileNotFoundError:
+        messagebox.showerror("Error", "The source PDF file was not found.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Unexpected error: {e}")
+
+def browse_input():
+    filename = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
+    if filename:
+        entry_input.delete(0, tk.END)
+        entry_input.insert(0, filename)
+
+def browse_output():
+    filename = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
+    if filename:
+        entry_output.delete(0, tk.END)
+        entry_output.insert(0, filename)
+
+def protect_pdf():
+    input_pdf = entry_input.get()
+    output_pdf = entry_output.get()
+    password = entry_password.get()
+
+    if not input_pdf or not output_pdf or not password:
+        messagebox.showwarning("Missing Information", "Please complete all fields before proceeding.")
+        return
+
+    create_password_protected_pdf(input_pdf, output_pdf, password)
+
+root = tk.Tk()
+root.title("PDF Protector")
+root.geometry("600x300")
+root.resizable(False, False)
+
+tk.Label(root, text="Select Source Document:", font=("Segoe UI", 11)).grid(row=0, column=0, padx=15, pady=10, sticky="w")
+entry_input = tk.Entry(root, width=50)
+entry_input.grid(row=0, column=1, padx=10, pady=10)
+tk.Button(root, text="Browse", command=browse_input).grid(row=0, column=2, padx=10)
+
+tk.Label(root, text="Save As (Protected PDF):", font=("Segoe UI", 11)).grid(row=1, column=0, padx=15, pady=10, sticky="w")
+entry_output = tk.Entry(root, width=50)
+entry_output.grid(row=1, column=1, padx=10, pady=10)
+tk.Button(root, text="Browse", command=browse_output).grid(row=1, column=2, padx=10)
+
+tk.Label(root, text="Set Protection Password:", font=("Segoe UI", 11)).grid(row=2, column=0, padx=15, pady=10, sticky="w")
+entry_password = tk.Entry(root, width=50, show="*")
+entry_password.grid(row=2, column=1, padx=10, pady=10)
+
+tk.Button(root, text="Apply Protection", command=protect_pdf, bg="#2E8B57", fg="white", font=("Segoe UI", 11, "bold")).grid(row=3, column=1, pady=25)
+
+signature = tk.Label(root, text="Crafted by Rakesh Kanna", fg="gray", font=("Segoe UI", 10, "italic"))
+signature.grid(row=4, column=0, columnspan=3, pady=10)
+
+root.mainloop()
